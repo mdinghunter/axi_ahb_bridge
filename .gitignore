@@ -1,0 +1,16 @@
+# simulation
+build/
+transcript
+*.wlf
+*.ucdb
+vsim.dbg*
+vsim_stacktrace.vstf
+questa.ini
+modelsim.ini
+*.log
+
+# vivado
+*.jou
+*.str
+.Xil/
+docs/coverage/
