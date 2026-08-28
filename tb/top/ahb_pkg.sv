@@ -1,5 +1,14 @@
 package ahb_pkg;
 
+  // bus widths -- the only widths that are configurable; all the control
+  // signal widths below are fixed by the AMBA AHB spec and live in the enums
+  parameter int AHB_ADDR_W = 32;
+  parameter int AHB_DATA_W = 32;
+
+  typedef logic [AHB_ADDR_W-1:0] haddr_t;
+  typedef logic [AHB_DATA_W-1:0] hdata_t;
+  typedef logic [3:0]            hprot_t;
+
   typedef enum logic [2:0] {
     HBURST_SINGLE = 3'b000,
     HBURST_INCR   = 3'b001,

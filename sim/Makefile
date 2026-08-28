@@ -16,10 +16,13 @@ COVDIR  := build/cov
 VLOG_FLAGS := -sv -work $(WORK) -f $(FILELIST)
 
 # Two build flavors: debug keeps full visibility, fast drops it for regressions.
-VOPT_DEBUG := -work $(WORK) $(TOP) -o $(OPT) -debug
+VOPT_DEBUG := -work $(WORK) $(TOP) -o $(OPT) -debug -designfile build/design.bin
 VOPT_FAST  := -work $(WORK) $(TOP) -o $(OPT) +cover=bcefsx
 
 VSIM_FLAGS := -c -lib $(WORK) $(OPT) -sv_seed $(SEED)
+
+WAVEDB := build/run_$(SEED).db
+QWAVE  := -qwavedb=+signal+memory+msgmode=both+wavefile=$(WAVEDB)
 
 .PHONY: all lib compile opt run gui wave regress cov clean
 
@@ -34,20 +37,19 @@ compile: lib
 opt: compile
 	cd $(ROOT) && vopt $(VOPT_DEBUG)
 
-# One interactive run. Waves land in build/run_$(SEED).wlf for post-hoc debug.
+# One batch run. Waves land in $(WAVEDB) for post-hoc debug.
 run: opt
-	cd $(ROOT) && mkdir -p build && vsim $(VSIM_FLAGS) \
-	  -wlf build/run_$(SEED).wlf \
-	  -do "log -r /*; run -all; quit"
+	cd $(ROOT) && mkdir -p build && vsim $(VSIM_FLAGS) $(QWAVE) \
+	  -do "run -all; quit"
 
-# Same run, GUI up front. Use when you already know you'll be poking at it.
+# Same run with Visualizer up front. Use when you know you'll be poking at it.
 gui: opt
-	cd $(ROOT) && vsim -gui -lib $(WORK) $(OPT) -sv_seed $(SEED) \
-	  -do "log -r /*; run -all"
+	cd $(ROOT) && vsim -visualizer=build/design.bin -lib $(WORK) $(OPT) \
+	  -sv_seed $(SEED) $(QWAVE) -do "run -all"
 
 # Post-hoc: open the waves from the last `make run` without re-simulating.
 wave:
-	cd $(ROOT) && vsim -view build/run_$(SEED).wlf
+	cd $(ROOT) && visualizer -designfile build/design.bin -wavefile $(WAVEDB)
 
 # Regression: N seeds, no visibility, coverage on, one UCDB per seed.
 # Usage: make regress N=50
@@ -67,4 +69,4 @@ cov:
 	  vcover report -details $(COVDIR)/merged.ucdb
 
 clean:
-	cd $(ROOT) && rm -rf build transcript vsim.wlf vsim.dbg* *.log
+	cd $(ROOT) && rm -rf build transcript vsim.wlf vsim.dbg* qwave.db *.db *.log
