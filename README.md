@@ -2,9 +2,7 @@
 
 # AXI4 → AHB-Lite Bridge
 
-A synthesizable protocol bridge that passes data through an AXI4 subordinate interface
-and drives an AHB-Lite manager interface, verified with a UVM
-verification environment.
+A synthesizable protocol bridge that presents an AXI4 subordinate interface and drives an AHB-Lite manager interface, with a UVM environment. 
 
 32-bit data and address on both sides, single outstanding transaction,
 single clock domain.
