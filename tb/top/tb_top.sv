@@ -31,12 +31,38 @@ module tb_top ();
     wait (HRESETn === 1'b1);
     @(posedge HCLK);
     $display("[tb_top] seed=%0d", $urandom());
-    ahb_write(32'h0000_0010, 32'hDEAD_BEEF);
-    ahb_read(32'h0000_0010, rdata);
+    // ---- word write / read ----------------------------------------
+    ahb_write(32'h0000_0010, HSIZE_WORD, 32'hDEAD_BEEF);
+    ahb_read (32'h0000_0010, HSIZE_WORD, rdata);
     if (rdata !== 32'hDEAD_BEEF)
-      $error("read got %08h, expected DEADBEEF", rdata);
+      $error("word read got %08h, expected DEADBEEF", rdata);
     else
-      $display("[tb_top] write/read PASS");
+      $display("[tb_top] word write/read PASS");
+
+    // ---- halfword lanes -------------------------------------------
+    ahb_write(32'h0000_0030, HSIZE_HALFWORD, 32'h0000_1122);
+    ahb_write(32'h0000_0032, HSIZE_HALFWORD, 32'h0000_3344);
+    ahb_read (32'h0000_0030, HSIZE_WORD, rdata);
+    if (rdata !== 32'h3344_1122)
+      $error("halfword-lane read got %08h, expected 33441122", rdata);
+
+    // ---- byte lanes: four byte writes, one word read ---------------
+    ahb_write(32'h0000_0020, HSIZE_BYTE, 32'h0000_00AA);
+    ahb_write(32'h0000_0021, HSIZE_BYTE, 32'h0000_00BB);
+    ahb_write(32'h0000_0022, HSIZE_BYTE, 32'h0000_00CC);
+    ahb_write(32'h0000_0023, HSIZE_BYTE, 32'h0000_00DD);
+    ahb_read (32'h0000_0020, HSIZE_WORD, rdata);
+    if (rdata !== 32'hDDCC_BBAA)
+      $error("byte-lane read got %08h, expected DDCCBBAA", rdata);
+    else
+      $display("[tb_top] byte-lane write PASS");
+
+    // ---- byte read back from a non-zero lane -----------------------
+    ahb_read (32'h0000_0022, HSIZE_BYTE, rdata);
+    if (rdata[7:0] !== 8'hCC)
+      $error("byte read of 0x22 got %02h, expected CC", rdata[7:0]);
+    else
+      $display("[tb_top] byte read PASS");
     repeat (5) @(posedge HCLK);
     $finish;
   end
@@ -52,30 +78,34 @@ module tb_top ();
     u_ahb.HWDATA = '0;
   endtask
 
-  task automatic ahb_write(input haddr_t addr, input hdata_t data);
+  // Data is right-justified: the task places it on the byte lane the address selects
+  task automatic ahb_write(input haddr_t addr, input hsize_e size = HSIZE_WORD,
+                           input hdata_t data);
     // address phase
     @(posedge HCLK);
     u_ahb.HADDR  <= addr;
     u_ahb.HTRANS <= HTRANS_NONSEQ;
     u_ahb.HWRITE <= 1'b1;
-    u_ahb.HSIZE  <= HSIZE_WORD;
+    u_ahb.HSIZE  <= size;
     u_ahb.HBURST <= HBURST_SINGLE;
 
     // data phase
     @(posedge HCLK);
     u_ahb.HTRANS <= HTRANS_IDLE;
-    u_ahb.HWDATA <= data;
+    u_ahb.HWDATA <= data << (8 * addr[1:0]);
 
     // TODO wait while HREADY low
   endtask
 
-  task automatic ahb_read(input haddr_t addr, output hdata_t data);
+  // Returns right-justified data
+  task automatic ahb_read(input haddr_t addr, input hsize_e size = HSIZE_WORD,
+                          output hdata_t data);
     // address phase
     @(posedge HCLK);
     u_ahb.HADDR  <= addr;
     u_ahb.HTRANS <= HTRANS_NONSEQ;
     u_ahb.HWRITE <= 1'b0;
-    u_ahb.HSIZE  <= HSIZE_WORD;
+    u_ahb.HSIZE  <= size;
     u_ahb.HBURST <= HBURST_SINGLE;
 
     // data phase
@@ -84,7 +114,7 @@ module tb_top ();
 
     // HRDATA valid
     @(posedge HCLK);
-    data = u_ahb.HRDATA;
+    data = u_ahb.HRDATA >> (8 * addr[1:0]);
 
     // TODO wait while HREADY low
   endtask
