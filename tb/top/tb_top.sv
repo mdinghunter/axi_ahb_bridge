@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module tb_top ();
+module tb_top #(parameter int TIMEOUT_NS = 1000) ();
   import ahb_pkg::*;
 
   // HCLK generation
@@ -25,97 +25,54 @@ module tb_top ();
 
   hdata_t rdata;
 
-  initial ahb_idle();
+  initial u_ahb.ahb_idle();
 
   initial begin
     wait (HRESETn === 1'b1);
     @(posedge HCLK);
     $display("[tb_top] seed=%0d", $urandom());
     // ---- word write / read ----------------------------------------
-    ahb_write(32'h0000_0010, HSIZE_WORD, 32'hDEAD_BEEF);
-    ahb_read (32'h0000_0010, HSIZE_WORD, rdata);
+    u_ahb.ahb_write(32'h0000_0010, HSIZE_WORD, 32'hDEAD_BEEF);
+    u_ahb.ahb_read(32'h0000_0010, HSIZE_WORD, rdata);
     if (rdata !== 32'hDEAD_BEEF)
       $error("word read got %08h, expected DEADBEEF", rdata);
     else
       $display("[tb_top] word write/read PASS");
 
     // ---- halfword lanes -------------------------------------------
-    ahb_write(32'h0000_0030, HSIZE_HALFWORD, 32'h0000_1122);
-    ahb_write(32'h0000_0032, HSIZE_HALFWORD, 32'h0000_3344);
-    ahb_read (32'h0000_0030, HSIZE_WORD, rdata);
+    u_ahb.ahb_write(32'h0000_0030, HSIZE_HALFWORD, 32'h0000_1122);
+    u_ahb.ahb_write(32'h0000_0032, HSIZE_HALFWORD, 32'h0000_3344);
+    u_ahb.ahb_read(32'h0000_0030, HSIZE_WORD, rdata);
     if (rdata !== 32'h3344_1122)
       $error("halfword-lane read got %08h, expected 33441122", rdata);
+    else
+      $display("[tb_top] halfword-lane write/read PASS");
 
     // ---- byte lanes: four byte writes, one word read ---------------
-    ahb_write(32'h0000_0020, HSIZE_BYTE, 32'h0000_00AA);
-    ahb_write(32'h0000_0021, HSIZE_BYTE, 32'h0000_00BB);
-    ahb_write(32'h0000_0022, HSIZE_BYTE, 32'h0000_00CC);
-    ahb_write(32'h0000_0023, HSIZE_BYTE, 32'h0000_00DD);
-    ahb_read (32'h0000_0020, HSIZE_WORD, rdata);
+    u_ahb.ahb_write(32'h0000_0020, HSIZE_BYTE, 32'h0000_00AA);
+    u_ahb.ahb_write(32'h0000_0021, HSIZE_BYTE, 32'h0000_00BB);
+    u_ahb.ahb_write(32'h0000_0022, HSIZE_BYTE, 32'h0000_00CC);
+    u_ahb.ahb_write(32'h0000_0023, HSIZE_BYTE, 32'h0000_00DD);
+    u_ahb.ahb_read(32'h0000_0020, HSIZE_WORD, rdata);
     if (rdata !== 32'hDDCC_BBAA)
       $error("byte-lane read got %08h, expected DDCCBBAA", rdata);
     else
       $display("[tb_top] byte-lane write PASS");
 
     // ---- byte read back from a non-zero lane -----------------------
-    ahb_read (32'h0000_0022, HSIZE_BYTE, rdata);
+    u_ahb.ahb_read(32'h0000_0022, HSIZE_BYTE, rdata);
     if (rdata[7:0] !== 8'hCC)
       $error("byte read of 0x22 got %02h, expected CC", rdata[7:0]);
     else
       $display("[tb_top] byte read PASS");
     repeat (5) @(posedge HCLK);
+    $display("TEST DONE");
     $finish;
   end
 
-
-  task automatic ahb_idle();
-    u_ahb.HTRANS = HTRANS_IDLE;
-    u_ahb.HWRITE = 1'b0;
-    u_ahb.HSIZE  = HSIZE_WORD;
-    u_ahb.HBURST = HBURST_SINGLE;
-    u_ahb.HPROT  = 4'b0011;
-    u_ahb.HADDR  = '0;
-    u_ahb.HWDATA = '0;
-  endtask
-
-  // Data is right-justified: the task places it on the byte lane the address selects
-  task automatic ahb_write(input haddr_t addr, input hsize_e size = HSIZE_WORD,
-                           input hdata_t data);
-    // address phase
-    @(posedge HCLK);
-    u_ahb.HADDR  <= addr;
-    u_ahb.HTRANS <= HTRANS_NONSEQ;
-    u_ahb.HWRITE <= 1'b1;
-    u_ahb.HSIZE  <= size;
-    u_ahb.HBURST <= HBURST_SINGLE;
-
-    // data phase
-    @(posedge HCLK);
-    u_ahb.HTRANS <= HTRANS_IDLE;
-    u_ahb.HWDATA <= data << (8 * addr[1:0]);
-
-    // TODO wait while HREADY low
-  endtask
-
-  // Returns right-justified data
-  task automatic ahb_read(input haddr_t addr, input hsize_e size = HSIZE_WORD,
-                          output hdata_t data);
-    // address phase
-    @(posedge HCLK);
-    u_ahb.HADDR  <= addr;
-    u_ahb.HTRANS <= HTRANS_NONSEQ;
-    u_ahb.HWRITE <= 1'b0;
-    u_ahb.HSIZE  <= size;
-    u_ahb.HBURST <= HBURST_SINGLE;
-
-    // data phase
-    @(posedge HCLK);
-    u_ahb.HTRANS <= HTRANS_IDLE;
-
-    // HRDATA valid
-    @(posedge HCLK);
-    data = u_ahb.HRDATA >> (8 * addr[1:0]);
-
-    // TODO wait while HREADY low
-  endtask
+  // fires only if the stimulus block never reaches $finish
+  initial begin
+    #(TIMEOUT_NS * 1ns);
+    $fatal(1, "[tb_top] TIMEOUT after %0d ns", TIMEOUT_NS);
+  end
 endmodule

@@ -76,4 +76,57 @@ interface ahb_if (
     input HCLK, HRESETn
   );
 
+  // ---------------------------------------------------------------
+  // master stimulus tasks
+  // ---------------------------------------------------------------
+
+  task automatic ahb_idle();
+    HTRANS = HTRANS_IDLE;
+    HWRITE = 1'b0;
+    HSIZE  = HSIZE_WORD;
+    HBURST = HBURST_SINGLE;
+    HPROT  = 4'b0011;
+    HADDR  = '0;
+    HWDATA = '0;
+  endtask
+
+  // Data is right-justified: the task places it on the byte lane the address selects
+  task automatic ahb_write(input haddr_t addr, input hsize_e size = HSIZE_WORD,
+                           input hdata_t data);
+    // address phase
+    @(posedge HCLK);
+    HADDR  <= addr;
+    HTRANS <= HTRANS_NONSEQ;
+    HWRITE <= 1'b1;
+    HSIZE  <= size;
+    HBURST <= HBURST_SINGLE;
+    do @(posedge HCLK); while (!HREADY);
+
+    // data phase
+    HTRANS <= HTRANS_IDLE;
+    HWDATA <= data << (8 * addr[1:0]);
+    do @(posedge HCLK); while (!HREADY);
+  endtask
+
+  // Returns right-justified data
+  task automatic ahb_read(input haddr_t addr, input hsize_e size = HSIZE_WORD,
+                          output hdata_t data);
+    // address phase
+    @(posedge HCLK);
+    HADDR  <= addr;
+    HTRANS <= HTRANS_NONSEQ;
+    HWRITE <= 1'b0;
+    HSIZE  <= size;
+    HBURST <= HBURST_SINGLE;
+    do @(posedge HCLK); while (!HREADY);
+
+    // data phase
+    HTRANS <= HTRANS_IDLE;
+    do @(posedge HCLK); while (!HREADY);
+
+    // HRDATA valid
+    data = HRDATA >> (8 * addr[1:0]);
+
+  endtask
+
 endinterface
