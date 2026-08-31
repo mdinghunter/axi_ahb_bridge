@@ -38,6 +38,10 @@ package ahb_pkg;
     /* unused   */ 4'bxxxx, 4'bxxxx, 4'bxxxx, 4'bxxxx
   };
 
+  // Depth of the modeled slave memory
+  localparam int AHB_MEM_WORDS = 1024;
+  localparam int AHB_MEM_BYTES = AHB_MEM_WORDS * AHB_BYTES;
+
   typedef enum logic [1:0] {
     HTRANS_IDLE   = 2'b00,
     HTRANS_BUSY   = 2'b01,

@@ -1,15 +1,12 @@
-module ahb_slave_bfm #(
-  parameter int MEM_WORDS = 1024,
+module ahb_slave_bfm import ahb_pkg::*; #(
   parameter int MAX_WAIT = 3
 ) (ahb_if.slave bus);
-
-  import ahb_pkg::*;
 
   logic HWRITE_reg;
   logic addr_phase;
   logic valid_reg;
   logic [$clog2(MAX_WAIT+1)-1:0] HREADYOUT_counter;
-  hdata_t mem [MEM_WORDS];
+  hdata_t mem [AHB_MEM_WORDS];
 
   // byte-enable logic for non-word-sized transfers
   logic [AHB_BYTES-1:0] byte_enable, byte_enable_reg;
@@ -17,8 +14,8 @@ module ahb_slave_bfm #(
                       : BE_LUT[{bus.HSIZE[1:0], bus.HADDR[1:0]}];
 
   // convert HADDR into mem_addr
-  logic [$clog2(MEM_WORDS)-1:0] mem_addr, mem_addr_reg;
-  assign mem_addr = bus.HADDR[$clog2(MEM_WORDS)+1:2];
+  logic [$clog2(AHB_MEM_WORDS)-1:0] mem_addr, mem_addr_reg;
+  assign mem_addr = bus.HADDR[$clog2(AHB_MEM_WORDS)+1:2];
 
   always_ff @(posedge bus.HCLK or negedge bus.HRESETn) begin
     if (!bus.HRESETn) begin
