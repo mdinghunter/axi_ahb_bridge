@@ -5,8 +5,8 @@ transcript
 *.ucdb
 vsim.dbg*
 vsim_stacktrace.vstf
-questa.ini
-modelsim.ini
 *.log
 *.db
 design.bin
+.visualizer/
+visualizer.ses
