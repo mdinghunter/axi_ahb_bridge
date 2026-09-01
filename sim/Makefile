@@ -8,15 +8,16 @@ TOP     := tb_top
 OPT     := tb_opt
 FILELIST:= sim/tb.f
 
-# Run knobs, overridable:  make run SEED=42 TIMEOUT_NS=20000
+# Run knobs, overridable:  make run SEED=42 N_TRANS=1000 TIMEOUT_NS=100000
 SEED    ?= 1
 TEST    ?= base_test
-TIMEOUT_NS ?= 1000
+TIMEOUT_NS ?= 100000
+N_TRANS ?= 1000
 COVDIR  := build/cov
 LOGDIR  := $(ROOT)/build/logs
 SUMFILE := $(LOGDIR)/summary.txt
 RESULTS := $(LOGDIR)/results.txt
-GENERICS := -gTIMEOUT_NS=$(TIMEOUT_NS)
+GENERICS := -gTIMEOUT_NS=$(TIMEOUT_NS) -gN_TRANS=$(N_TRANS)
 
 RUNDIR   := $(ROOT)/build
 ABS_WORK := $(ROOT)/$(WORK)
