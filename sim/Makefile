@@ -10,7 +10,7 @@ FILELIST:= sim/tb.f
 
 # Run knobs, overridable:  make run SEED=42 N_TRANS=1000 TIMEOUT_NS=100000
 SEED    ?= 1
-TEST    ?= base_test
+TEST    ?= ahb_base_test
 TIMEOUT_NS ?= 100000
 N_TRANS ?= 1000
 COVDIR  := build/cov
@@ -29,13 +29,20 @@ QWAVE    := -qwavedb=+signal+memory+msgmode=both+wavefile=$(WAVEDB)
 WAVEDO   := $(ROOT)/sim/wave.do
 DOWAVE   := $(if $(wildcard $(WAVEDO)),do $(WAVEDO); ,)
 
-VLOG_FLAGS := -sv -work $(WORK) -f $(FILELIST)
+# UVM
+QUESTA  := $(patsubst %/bin/,%,$(dir $(shell which vsim)))
+UVM_LIB := $(QUESTA)/uvm-1800.2-2020.3.1
+UVM_SRC := $(QUESTA)/verilog_src/uvm-1800.2-2020.3.1/src
+UVM_DPI := $(UVM_LIB)/linux_x86_64/uvm_dpi
+UVM_RUN := -L $(UVM_LIB) -sv_lib $(UVM_DPI) +UVM_TESTNAME=$(TEST)
+
+VLOG_FLAGS := -sv -work $(WORK) +incdir+$(UVM_SRC) -L $(UVM_LIB) -f $(FILELIST)
 
 # Two build flavors: debug keeps full visibility, fast drops it for regressions.
-VOPT_DEBUG := -work $(WORK) $(TOP) -o $(OPT) $(GENERICS) -debug -designfile $(DESIGNBIN)
-VOPT_FAST  := -work $(WORK) $(TOP) -o $(OPT) $(GENERICS) +cover=bcefsx
+VOPT_DEBUG := -work $(WORK) $(TOP) -o $(OPT) $(GENERICS) -L $(UVM_LIB) -debug -designfile $(DESIGNBIN)
+VOPT_FAST  := -work $(WORK) $(TOP) -o $(OPT) $(GENERICS) -L $(UVM_LIB) +cover=bcefsx
 
-VSIM_FLAGS := -c -lib $(ABS_WORK) $(OPT) -sv_seed $(SEED)
+VSIM_FLAGS := -c -lib $(ABS_WORK) $(OPT) $(UVM_RUN) -sv_seed $(SEED)
 
 .PHONY: all lib compile opt run gui wave regress summary cov clean
 
@@ -59,7 +66,7 @@ run: opt
 # Same run with Visualizer up front. Use when you know you'll be poking at it.
 gui: opt
 	cd $(RUNDIR) && vsim -visualizer=$(DESIGNBIN) -lib $(ABS_WORK) $(OPT) \
-	  -sv_seed $(SEED) $(QWAVE) -do "$(DOWAVE)run -all"
+	  $(UVM_RUN) -sv_seed $(SEED) $(QWAVE) -do "$(DOWAVE)run -all"
 
 # Post-hoc: open the waves from the last `make run` without re-simulating.
 wave:
@@ -73,13 +80,13 @@ regress: compile
 	@rm -f $(RESULTS)
 	-@cd $(RUNDIR) && for s in $$(seq 1 $(N)); do \
 	  log=$(LOGDIR)/seed_$$s.log; \
-	  vsim -c -lib $(ABS_WORK) $(OPT) -coverage -sv_seed $$s \
+	  vsim -c -lib $(ABS_WORK) $(OPT) $(UVM_RUN) -coverage -sv_seed $$s \
 	    -l $$log \
 	    -do "run -all; coverage save $(ROOT)/$(COVDIR)/run_$$s.ucdb; quit" \
 	    > /dev/null 2>&1; \
 	  if [ ! -f $$log ]; then v="FAIL  no log"; \
-	  elif grep -qE '\*\* (Error|Fatal)' $$log; then \
-	    v="FAIL  $$(grep -cE '\*\* (Error|Fatal)' $$log) error(s)"; \
+	  elif grep -qE '(\*\* (Error|Fatal))|(UVM_(ERROR|FATAL) @)' $$log; then \
+	    v="FAIL  $$(grep -cE '(\*\* (Error|Fatal))|(UVM_(ERROR|FATAL) @)' $$log) error(s)"; \
 	  elif ! grep -qE 'TEST (DONE|PASSED)' $$log; then \
 	    v="FAIL  did not finish"; \
 	  else v="PASS"; fi; \
