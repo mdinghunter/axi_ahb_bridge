@@ -10,3 +10,11 @@ vsim_stacktrace.vstf
 design.bin
 .visualizer/
 visualizer.ses
+# Vivado xsim
+xsim.dir/
+xsim.covdb/
+*.jou
+*.pb
+*.wdb
+myreport*/
+dfx_runtime.txt
