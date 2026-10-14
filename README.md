@@ -43,25 +43,15 @@ single clock domain.
 
 ## Running the tests
 
-    make -C sim run              # one seed, waves to build/
-    make -C sim run N_TRANS=5000 # one seed, longer random stream
-    make -C sim wave             # open the last run in Visualizer
-    make -C sim regress N=50     # 50 seeds with coverage
-    make -C sim cov              # merge and report
-
-## Running with Vivado xsim
-
-The Makefile in `sim/` targets QuestaSim. A Vivado xsim equivalent lives in
-`sim/vivado/` (tested with Vivado 2025.2.1; UVM comes from xsim's bundled
-`-L uvm`). It needs GNU make for Windows (`mingw32-make` from MSYS2 ucrt64)
+Uses Vivado xsim (tested with Vivado 2025.2.1; UVM comes from xsim's bundled
+`-L uvm`). It needs GNU make for Windows (`mingw32-make` from MSYS2 ucrt64, copied to `make.exe`)
 and Vivado's `bin` directory on `PATH` (or `VIVADO_BIN` set). The Makefile
 uses `cmd.exe` as its shell, since MSYS `sh` does not run Vivado's `.bat`
-wrappers reliably.
+wrappers reliably. Source compile order lives in `sim/tb.f`.
 
-    mingw32-make -C sim/vivado run                 # one seed
-    mingw32-make -C sim/vivado run SEED=7 N_TRANS=5000
-    mingw32-make -C sim/vivado regress N=50        # prints PASS/FAIL per seed
-    mingw32-make -C sim/vivado gui                 # xsim GUI
+    make -C sim run                 # one seed
+    make -C sim run SEED=7 N_TRANS=5000
+    make -C sim regress N=50        # prints PASS/FAIL per seed
+    make -C sim gui                 # xsim GUI
 
-Output lands in `build/xsim/`. Not ported yet: coverage merge/report (Questa
-`vcover`) and `sim/wave.do`.
+Output lands in `build/xsim/`. Coverage merge/report is not set up yet.

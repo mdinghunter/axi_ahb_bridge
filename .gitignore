@@ -1,20 +1,13 @@
-# simulation
+# build output (xsim logs, snapshots, waves)
 build/
-transcript
-*.wlf
-*.ucdb
-vsim.dbg*
-vsim_stacktrace.vstf
-*.log
-*.db
-design.bin
-.visualizer/
-visualizer.ses
-# Vivado xsim
+
+# Vivado / xsim
 xsim.dir/
 xsim.covdb/
 *.jou
+*.log
 *.pb
 *.wdb
 myreport*/
 dfx_runtime.txt
+docs\STUDY_GUIDE.md
