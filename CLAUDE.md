@@ -1,6 +1,6 @@
-# AXI4 → AHB-Lite Bridge
+# AXI4 → AHB5 Bridge
 
-Synthesizable AXI4 subordinate → AHB-Lite manager bridge, plus a UVM
+Synthesizable AXI4 subordinate → AHB5 manager bridge, plus a UVM
 verification environment. 32-bit address/data, single outstanding
 transaction, single clock domain. See `README.md` for the protocol
 mismatches and the status checklist (keep the checklist current).
@@ -11,7 +11,7 @@ mismatches and the status checklist (keep the checklist current).
 - `tb/ahb/` — AHB interface, packages, slave BFM, reference model, `ahb_txn`
 - `tb/test/` — UVM tests; `tb/top/tb_top.sv` — top-level
 - `sim/` — Vivado xsim flow (the only simulator): `Makefile`, and `tb.f` (compile-order filelist; add new files here)
-- `docs/` — AXI spec (IHI0022H), AHB spec (IHI0033a), `JOURNAL.md`, `STUDY_GUIDE.md`
+- `docs/` — AXI spec (IHI0022H), AHB spec (IHI0033C, covers AHB-Lite and AHB5), `JOURNAL.md`, `STUDY_GUIDE.md`
 - `build/` — generated, gitignored; never edit or commit
 
 ## Commands
@@ -22,10 +22,10 @@ mismatches and the status checklist (keep the checklist current).
 ## Ground rules
 
 **Working style**
-- This is a learning project. Explain non-obvious protocol or UVM choices briefly; don't silently hand over large blocks of code. Prefer small, reviewable steps over big drops.
+- The goal of this project is for the user to learn RTL design and design verification (DV). Optimize for their learning, not speed: they write the RTL themselves; I explain, review and quiz rather than hand over finished designs. Explain non-obvious protocol or UVM choices briefly; don't silently hand over large blocks of code. Prefer small, reviewable steps over big drops.
 - Propose the design (FSM states, ports, interfaces) and get agreement before writing substantial new RTL or testbench architecture.
 - Cite the spec (section/rule) when implementing protocol behavior, not memory. The PDFs are in `docs/`.
-- Don't commit, push, or touch git history unless asked. Commit messages: short imperative subject, match existing style.  No Claude attribution: no `Co-Authored-By` trailer and no "Generated with Claude Code" line in commits or PR descriptions. Don't commit `docs/JOURNAL.md` or `docs/STUDY_GUIDE.md` without asking; they're the user's notes — don't rewrite them.
+- Don't commit, push, or touch git history unless asked. Commit messages: short imperative subject, match existing style.  No Claude attribution: no `Co-Authored-By` trailer and no "Generated with Claude Code" line in commits or PR descriptions. `docs/notes/` is the user's private, git-ignored notes (journal, study guide): don't edit or rewrite anything there unless asked.
 
 **RTL**
 - Synthesizable SystemVerilog only in `rtl/`: `always_ff`/`always_comb`, no delays, no `initial`, no testbench constructs, no latches.

@@ -18,10 +18,11 @@ package ahb_ref_pkg;
       return bytes;
     endfunction
 
-    function void write(haddr_t addr, hsize_e size, hdata_t data);
+    function void write(haddr_t addr, hsize_e size, hdata_t data, hstrb_t strobe = '1);
       int bytes = check_addr(addr, size);
       for (int i = 0; i < bytes; i++) begin
-        mem[addr+i] = data[8*i+:8];
+        if (strobe[addr[1:0] + i])
+          mem[addr+i] = data[8*i+:8];
       end
     endfunction
 

@@ -20,6 +20,7 @@ interface ahb_if (
   htrans_e HTRANS;
   hdata_t HWDATA;
   logic HWRITE;
+  hstrb_t HWSTRB;
 
   // slave signals
   hdata_t HRDATA;
@@ -37,7 +38,7 @@ interface ahb_if (
   // slave BFM: samples the address/data phase, drives the response
   clocking cb_slave @(posedge HCLK);
     default input #1step output #1ns;
-    input  HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE;
+    input  HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE, HWSTRB;
     input  HSEL, HREADY;
     // output HRDATA, HREADYOUT, HRESP; // TODO enable after making UVM driver
   endclocking
@@ -45,7 +46,7 @@ interface ahb_if (
   // passive monitor: samples everything, drives nothing
   clocking cb_mon @(posedge HCLK);
     default input #1step;
-    input HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE;
+    input HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE, HWSTRB;
     input HRDATA, HREADYOUT, HRESP;
     input HREADY, HSEL;
   endclocking
@@ -57,14 +58,14 @@ interface ahb_if (
   // DUT
   modport master (
     input  HCLK, HRESETn,
-    output HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE,
+    output HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE, HWSTRB,
     input  HRDATA, HRESP, HREADY
   );
 
   // slave BFM
   modport slave (
     input  HCLK, HRESETn,
-    input  HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE,
+    input  HADDR, HBURST, HPROT, HSIZE, HTRANS, HWDATA, HWRITE, HWSTRB,
     input  HSEL, HREADY,
     output HRDATA, HREADYOUT, HRESP,
     clocking cb_slave          // unused for now;
@@ -88,11 +89,12 @@ interface ahb_if (
     HPROT  = 4'b0011;
     HADDR  = '0;
     HWDATA = '0;
+    HWSTRB = '1;
   endtask
 
   // Data is right-justified: the task places it on the byte lane the address selects
   task automatic ahb_write(input haddr_t addr, input hsize_e size = HSIZE_WORD,
-                           input hdata_t data);
+                           input hdata_t data, input hstrb_t strobe = '1);
     // address phase
     @(posedge HCLK);
     HADDR  <= addr;
@@ -105,6 +107,7 @@ interface ahb_if (
     // data phase
     HTRANS <= HTRANS_IDLE;
     HWDATA <= data << (8 * addr[1:0]);
+    HWSTRB  <= strobe;
     do @(posedge HCLK); while (!HREADY);
   endtask
 

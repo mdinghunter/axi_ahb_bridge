@@ -10,4 +10,4 @@ xsim.covdb/
 *.wdb
 myreport*/
 dfx_runtime.txt
-docs\STUDY_GUIDE.md
+docs/notes/

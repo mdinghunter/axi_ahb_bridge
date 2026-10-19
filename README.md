@@ -1,17 +1,19 @@
 ![status](https://img.shields.io/badge/status-work%20in%20progress-orange)
 
-# AXI4 → AHB-Lite Bridge
+# AXI4 → AHB5 Bridge
 
 A synthesizable protocol bridge that presents an AXI4 subordinate interface
-and drives an AHB-Lite manager interface, with a UVM environment.
+and drives an AHB5 manager interface (write strobes enabled, as defined in
+IHI0033C), with a UVM environment.
 
 32-bit data and address on both sides, single outstanding transaction,
 single clock domain.
 
 ## Protocol Mismatches
 
-- **Byte enables.** AXI carries `WSTRB` per beat; AHB-Lite has no equivalent
-  and expresses byte enables only through `HSIZE` plus address alignment.
+- **Byte enables.** AXI carries `WSTRB` per beat. AHB5 has `HWSTRB`, but byte
+  lanes are still selected by `HSIZE` plus address alignment, so the bridge has
+  to keep `WSTRB` consistent with the transfer's active lanes.
 - **Pipelining.** AHB's address and data phases are offset by a cycle but AXI's
   channels are independent.
 - **Bursts.** AXI burst length is explicit in `AxLEN`, but AHB `INCR` is

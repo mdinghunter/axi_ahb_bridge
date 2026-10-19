@@ -36,7 +36,7 @@ module ahb_slave_bfm import ahb_pkg::*; #(
   always_ff @(posedge bus.HCLK) begin
     if (valid_reg && HWRITE_reg && bus.HREADY) begin
       for (int i = 0; i < AHB_BYTES; i++) begin
-        if (byte_enable_reg[i])
+        if (byte_enable_reg[i] && bus.HWSTRB[i])
           mem[mem_addr_reg][i*8+:8] <= bus.HWDATA[i*8+:8];
       end
     end

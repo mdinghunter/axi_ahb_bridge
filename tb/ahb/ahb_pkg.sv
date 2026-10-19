@@ -7,6 +7,7 @@ package ahb_pkg;
   typedef logic [AHB_ADDR_W-1:0] haddr_t;
   typedef logic [AHB_DATA_W-1:0] hdata_t;
   typedef logic [3:0]            hprot_t;
+  typedef logic [AHB_BYTES-1:0]  hstrb_t;
 
   typedef enum logic [2:0] {
     HBURST_SINGLE = 3'b000,
